@@ -6,7 +6,7 @@ import { useStellarWallet } from "@/context/StellarWalletProvider";
 import { TokenSelectorModal } from "./TokenSelectorModal";
 import { TOKENS } from "@/config/tokens";
 import { toast } from "sonner";
-import { Horizon, rpc, TransactionBuilder, Networks, BASE_FEE, Asset, Contract } from "@stellar/stellar-sdk";
+import { Horizon, rpc, TransactionBuilder, Networks, BASE_FEE, Asset, Contract, nativeToScVal, Transaction } from "@stellar/stellar-sdk";
 
 const rpcServer = new rpc.Server("https://soroban-testnet.stellar.org");
 const horizonServer = new Horizon.Server("https://horizon-testnet.stellar.org");
@@ -27,6 +27,29 @@ export function SwapCard() {
 
     // Mock checking balance - in a real Soroban app we'd call the token contract's balance() function
     const [mockBalance, setMockBalance] = useState<number>(100);
+    const [mockReceiveBalance, setMockReceiveBalance] = useState<number>(0);
+
+    const tokenPrices: Record<string, number> = {
+        XLM: 0.12, USDC: 1.0, EURC: 1.08, BTC: 65000,
+        ETH: 3500, SOL: 150, LINK: 18, UNI: 8, AQUA: 0.001, CTRLZ: 0.5,
+    };
+
+    const getExchangeRate = () => {
+        const p1 = tokenPrices[payToken.symbol] || 1;
+        const p2 = tokenPrices[receiveToken.symbol] || 1;
+        return p1 / p2;
+    };
+
+    // Auto update receive amount when pay amount or tokens change
+    useEffect(() => {
+        if (!payAmount || parseFloat(payAmount) === 0) {
+            setReceiveAmount("");
+            return;
+        }
+        const rate = getExchangeRate();
+        const amt = parseFloat(payAmount) * rate;
+        setReceiveAmount(amt.toFixed(6).replace(/\.?0+$/, ""));
+    }, [payAmount, payToken, receiveToken]);
 
     useEffect(() => {
         // Basic effect to fetch balance if needed
@@ -41,6 +64,19 @@ export function SwapCard() {
             setMockBalance(5000); // Mock balance for other tokens
         }
     }, [address, payToken]);
+
+    useEffect(() => {
+        if (address && receiveToken.symbol === "XLM") {
+            horizonServer.loadAccount(address).then((acc) => {
+                const native = acc.balances.find((b) => b.asset_type === "native");
+                if (native) setMockReceiveBalance(parseFloat(native.balance));
+            }).catch(() => {
+                setMockReceiveBalance(0);
+            });
+        } else {
+            setMockReceiveBalance(0); // Assuming 0 balance initially for alt tokens
+        }
+    }, [address, receiveToken]);
 
     useEffect(() => {
         // Whenever amount changes, try to simulate
@@ -64,14 +100,10 @@ export function SwapCard() {
                 // Let's create a dummy standard transaction just to show simulation concepts
                 const acc = await horizonServer.loadAccount(address).catch(() => null);
                 if (acc) {
+                    const ammContract = new Contract("CCV6HSAGOB4RQTY6CZSRTQJIX6VSMKTXXO5ICLXZ3XKRPP2PGXBA4WGB");
                     const tx = new TransactionBuilder(acc, { fee: BASE_FEE, networkPassphrase: Networks.TESTNET })
                         .addOperation(
-                            {
-                                type: "payment",
-                                destination: address,
-                                asset: Asset.native(),
-                                amount: "1"
-                            } as any
+                            ammContract.call("swap") // Mocked raw call for UI simulation integration
                         )
                         .setTimeout(30)
                         .build();
@@ -109,59 +141,93 @@ export function SwapCard() {
         setIsPending(true);
         try {
             // 1. Build Transaction
-            // Example dummy transaction for signing
             const source = await horizonServer.loadAccount(address);
+            const ammContract = new Contract("CCV6HSAGOB4RQTY6CZSRTQJIX6VSMKTXXO5ICLXZ3XKRPP2PGXBA4WGB");
+
+            // Assume 7 decimals for stroops
+            const amountInStroops = BigInt(Math.floor(payAmtNum * 10000000));
+            // In a real DEX, is_buy_a would be derived from the selected token direction
+            const isBuyA = true;
+
             const tx = new TransactionBuilder(source, {
-                fee: simulatedFeeStroops || BASE_FEE,
+                fee: BASE_FEE,
                 networkPassphrase: Networks.TESTNET,
             })
                 .addOperation(
-                    // In reality, this is a Soroban `.invokeHostFunction` operation
-                    // We use payment for standard testing prompt
-                    {
-                        type: "payment",
-                        destination: "GA2C5RFPE6GCKIG3EQKT45ABMKRQMBNDWDC2ALUKXAF7CGN7M3O24K6Z",
-                        asset: Asset.native(),
-                        amount: payAmount
-                    } as any
+                    ammContract.call(
+                        "swap",
+                        nativeToScVal(address, { type: "address" }),
+                        nativeToScVal(isBuyA, { type: "bool" }),
+                        nativeToScVal(amountInStroops, { type: "i128" }),
+                        nativeToScVal(0, { type: "i128" }) // min_out = 0 for demo
+                    )
                 )
-                .setTimeout(30)
+                .setTimeout(60)
                 .build();
 
-            const xdr = tx.toXDR();
+            // 2. Simulate Transaction to generate auth footprint and resource fee
+            toast.loading("Simulating transaction...", { id: "swap" });
+            const simRes = await rpcServer.simulateTransaction(tx);
+            if (rpc.Api.isSimulationError(simRes)) {
+                console.error("Simulation failed:", simRes.error);
+                throw new Error("Simulation failed. Check pool liquidity or allowance.");
+            }
 
-            // 2. Sign Transaction via Freighter
-            const signedXdr = await signTransaction(xdr);
+            // 3. Assemble Transaction
+            const assembledTx = rpc.assembleTransaction(tx, simRes).build();
+
+            // 4. Sign Transaction via Freighter
+            toast.loading("Please sign the transaction...", { id: "swap" });
+            const signedXdr = await signTransaction(assembledTx.toXDR());
             if (!signedXdr) {
-                // handle rejected by user inside signTransaction
+                toast.dismiss("swap");
                 setIsPending(false);
                 return;
             }
 
-            // 3. Submit to Network & Poll for SwapExecuted
-            toast.loading("Submitting to network...");
-            // let res = await rpcServer.sendTransaction(signedTx);
-            // Wait for network confirmation
-            await new Promise(r => setTimeout(r, 2000));
+            // 5. Submit to Network & Poll
+            toast.loading("Submitting to network...", { id: "swap" });
+            const txToSubmit = TransactionBuilder.fromXDR(signedXdr, Networks.TESTNET) as Transaction;
+            const sendRes = await rpcServer.sendTransaction(txToSubmit);
+            if (sendRes.status === "ERROR") {
+                throw new Error("Transaction submission failed.");
+            }
 
-            toast.dismiss();
+            // Wait for network confirmation
+            let txStatus: string = sendRes.status;
+            let checkTxRes: rpc.Api.GetTransactionResponse;
+            while (txStatus === "PENDING" || txStatus === "NOT_FOUND") {
+                await new Promise(r => setTimeout(r, 2000));
+                checkTxRes = await rpcServer.getTransaction(sendRes.hash);
+                txStatus = checkTxRes.status;
+            }
+
+            if (txStatus === "FAILED") {
+                throw new Error("Transaction failed on the network. Make sure you have enough XLM.");
+            }
+
+            toast.dismiss("swap");
             toast.success(
                 <div className="flex flex-col gap-1">
                     <span>Swap Executed Successfully!</span>
-                    <a href={`https://stellar.expert/explorer/testnet/tx/${tx.hash().toString("hex")}`} target="_blank" rel="noreferrer" className="text-primary underline text-xs">
+                    <a href={`https://stellar.expert/explorer/testnet/tx/${sendRes.hash}`} target="_blank" rel="noreferrer" className="text-primary underline text-xs">
                         View on Explorer
                     </a>
-                </div>
+                </div>,
+                { id: "swap_success", duration: 5000 }
             );
 
-            // Auto-refresh balances
+            // Auto-refresh balances mock
+            const receiveAmtNum = parseFloat(receiveAmount);
             setPayAmount("");
             setReceiveAmount("");
             setMockBalance(mockBalance - payAmtNum);
+            setMockReceiveBalance(mockReceiveBalance + receiveAmtNum);
 
         } catch (e: any) {
             console.error(e);
-            toast.error("An error occurred during swap execution");
+            toast.dismiss("swap");
+            toast.error(e.message || "An error occurred during swap execution");
         } finally {
             setIsPending(false);
         }
@@ -239,7 +305,17 @@ export function SwapCard() {
                             type="number"
                             placeholder="0.0"
                             value={receiveAmount}
-                            onChange={(e) => setReceiveAmount(e.target.value)}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                setReceiveAmount(val);
+                                if (!val || parseFloat(val) === 0) {
+                                    setPayAmount("");
+                                    return;
+                                }
+                                const rate = getExchangeRate();
+                                const amt = parseFloat(val) / rate;
+                                setPayAmount(amt.toFixed(6).replace(/\.?0+$/, ""));
+                            }}
                             className="bg-transparent text-3xl font-medium text-white outline-none w-full mr-4 placeholder-zinc-700"
                         />
                         <button
@@ -254,7 +330,20 @@ export function SwapCard() {
                             <ArrowDown className="w-4 h-4 text-zinc-400" />
                         </button>
                     </div>
+                    <div className="text-xs text-zinc-500 mt-3 font-medium text-right">
+                        Balance: {mockReceiveBalance.toLocaleString(undefined, { maximumFractionDigits: 6 })} {receiveToken.symbol}
+                    </div>
                 </div>
+
+                {/* Exchange Rate Info */}
+                {payToken && receiveToken && (
+                    <div className="flex justify-between items-center text-sm px-2 mt-4 text-zinc-400 font-medium">
+                        <span>Exchange Rate</span>
+                        <span className="text-zinc-300">
+                            1 {payToken.symbol} = {getExchangeRate().toLocaleString(undefined, { maximumFractionDigits: 6 })} {receiveToken.symbol}
+                        </span>
+                    </div>
+                )}
 
                 {/* Estimated Network Fee Accordion */}
                 {parseFloat(payAmount) > 0 && (

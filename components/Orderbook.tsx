@@ -1,9 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Horizon, Asset } from "@stellar/stellar-sdk";
-
-const horizonServer = new Horizon.Server("https://horizon-testnet.stellar.org");
 
 interface OrderBookEdge {
     price: string;
@@ -16,47 +13,34 @@ export function Orderbook() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // We will poll the horizon API for orderbook connecting XLM against USDC (using our mock testnet assets or generic XLM/USDC)
-        // For visual purposes, if orderbook is empty on testnet, we generate aesthetic mock data
-        const fetchOrderbook = async () => {
-            try {
-                const xlmusdc = await horizonServer.orderbook(
-                    new Asset("native"),
-                    new Asset("USDC", "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN") // mock asset just to fetch
-                ).call();
+        // Generate aesthetic mock orderbook data
+        const basePrice = 0.1250;
+        const _bids = Array.from({ length: 8 }).map((_, i) => ({
+            price: (basePrice - (i * 0.0005)).toFixed(4),
+            amount: (Math.random() * 5000 + 1000).toFixed(2)
+        }));
+        const _asks = Array.from({ length: 8 }).map((_, i) => ({
+            price: (basePrice + (i * 0.0005) + 0.0002).toFixed(4),
+            amount: (Math.random() * 5000 + 1000).toFixed(2)
+        })).reverse();
+        setBids(_bids);
+        setAsks(_asks);
+        setLoading(false);
 
-                if (xlmusdc.bids.length > 0) {
-                    setBids(xlmusdc.bids.slice(0, 8));
-                    setAsks(xlmusdc.asks.slice(0, 8));
-                } else {
-                    generateMockData();
-                }
-            } catch (e) {
-                generateMockData();
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        const generateMockData = () => {
-            // Aesthetic mock data for testnet UI if no trades exist
-            const basePrice = 0.1250;
-            const _bids = Array.from({ length: 8 }).map((_, i) => ({
-                price: (basePrice - (i * 0.0005)).toFixed(4),
+        // Simulate live updates every 3s
+        const interval = setInterval(() => {
+            const newBids = Array.from({ length: 8 }).map((_, i) => ({
+                price: (basePrice - (i * 0.0005) + (Math.random() * 0.0002 - 0.0001)).toFixed(4),
                 amount: (Math.random() * 5000 + 1000).toFixed(2)
             }));
-            const _asks = Array.from({ length: 8 }).map((_, i) => ({
-                price: (basePrice + (i * 0.0005) + 0.0002).toFixed(4),
+            const newAsks = Array.from({ length: 8 }).map((_, i) => ({
+                price: (basePrice + (i * 0.0005) + 0.0002 + (Math.random() * 0.0002 - 0.0001)).toFixed(4),
                 amount: (Math.random() * 5000 + 1000).toFixed(2)
             })).reverse();
-            setBids(_bids);
-            setAsks(_asks);
-        };
+            setBids(newBids);
+            setAsks(newAsks);
+        }, 3000);
 
-        fetchOrderbook();
-
-        // Poll every 5s
-        const interval = setInterval(fetchOrderbook, 5000);
         return () => clearInterval(interval);
     }, []);
 
@@ -85,7 +69,7 @@ export function Orderbook() {
             {/* Asks (Sell Orders - Red) */}
             <div className="flex flex-col gap-1 mb-4">
                 {asks.map((ask, i) => {
-                    const depth = (parseInt(ask.amount) / 8000) * 100; // mock depth calculation
+                    const depth = (parseInt(ask.amount) / 8000) * 100;
                     return (
                         <div key={`ask-${i}`} className="flex relative items-center px-2 py-0.5 group hover:bg-zinc-900 transition rounded cursor-pointer">
                             <div className="absolute right-0 top-0 bottom-0 bg-red-500/10 z-0" style={{ width: `${Math.min(depth, 100)}%` }} />

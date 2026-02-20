@@ -1,7 +1,7 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contractimpl, contracttype, contracterror,
+    contract, contractimpl, contracttype, contracterror, contractevent,
     token, Address, Env, Symbol, symbol_short,
     panic_with_error,
 };
@@ -45,28 +45,29 @@ pub enum DexError {
 }
 
 // ─────────────────────────────────────────────
-//  Events  ← #[contracttype] so they can be passed to env.events().publish()
+//  Events  ← #[contractevent] with .publish(&env)
 // ─────────────────────────────────────────────
-#[contracttype]
-#[derive(Clone)]
+#[contractevent]
 pub struct SwapEvent {
+    #[topic]
     pub from_token: Symbol,
+    #[topic]
     pub to_token:   Symbol,
     pub amount_in:  i128,
     pub amount_out: i128,
 }
 
-#[contracttype]
-#[derive(Clone)]
+#[contractevent]
 pub struct MintEvent {
+    #[topic]
     pub token:  Symbol,
     pub to:     Address,
     pub amount: i128,
 }
 
-#[contracttype]
-#[derive(Clone)]
+#[contractevent]
 pub struct LiquidityEvent {
+    #[topic]
     pub action:      Symbol,
     pub provider:    Address,
     pub xlm_amount:  i128,
@@ -152,10 +153,7 @@ impl StellarDex {
         let prev: i128 = env.storage().instance().get(&DataKey::TotalUsdcMinted).unwrap_or(0);
         env.storage().instance().set(&DataKey::TotalUsdcMinted, &(prev + amount));
 
-        env.events().publish(
-            (symbol_short!("mint"), symbol_short!("usdc")),
-            MintEvent { token: symbol_short!("usdc"), to, amount },
-        );
+        MintEvent { token: symbol_short!("usdc"), to, amount }.publish(&env);
     }
 
     pub fn mint_eth(env: Env, to: Address, amount: i128) {
@@ -169,10 +167,7 @@ impl StellarDex {
         let prev: i128 = env.storage().instance().get(&DataKey::TotalEthMinted).unwrap_or(0);
         env.storage().instance().set(&DataKey::TotalEthMinted, &(prev + amount));
 
-        env.events().publish(
-            (symbol_short!("mint"), symbol_short!("eth")),
-            MintEvent { token: symbol_short!("eth"), to, amount },
-        );
+        MintEvent { token: symbol_short!("eth"), to, amount }.publish(&env);
     }
 
     // ═══════════════════════════════════════
@@ -224,17 +219,14 @@ impl StellarDex {
         env.storage().persistent()
             .set(&DataKey::LpBalance(provider.clone()), &(prev_bal + lp_shares));
 
-        env.events().publish(
-            (symbol_short!("add_liq"),),
-            LiquidityEvent {
-                action: symbol_short!("add"),
-                provider,
-                xlm_amount,
-                usdc_amount,
-                eth_amount,
-                lp_shares,
-            },
-        );
+        LiquidityEvent {
+            action: symbol_short!("add"),
+            provider,
+            xlm_amount,
+            usdc_amount,
+            eth_amount,
+            lp_shares,
+        }.publish(&env);
         lp_shares
     }
 
@@ -274,17 +266,14 @@ impl StellarDex {
                 .transfer(&env.current_contract_address(), &provider, &eth_out);
         }
 
-        env.events().publish(
-            (symbol_short!("rem_liq"),),
-            LiquidityEvent {
-                action: symbol_short!("remove"),
-                provider,
-                xlm_amount: xlm_out,
-                usdc_amount: usdc_out,
-                eth_amount: eth_out,
-                lp_shares: lp_amount,
-            },
-        );
+        LiquidityEvent {
+            action: symbol_short!("remove"),
+            provider,
+            xlm_amount: xlm_out,
+            usdc_amount: usdc_out,
+            eth_amount: eth_out,
+            lp_shares: lp_amount,
+        }.publish(&env);
         (xlm_out, usdc_out, eth_out)
     }
 
@@ -311,10 +300,7 @@ impl StellarDex {
         token::Client::new(&env, &usdc)
             .transfer(&env.current_contract_address(), &buyer, &usdc_out);
 
-        env.events().publish(
-            (symbol_short!("swap"),),
-            SwapEvent { from_token: symbol_short!("xlm"), to_token: symbol_short!("usdc"), amount_in: xlm_in, amount_out: usdc_out },
-        );
+        SwapEvent { from_token: symbol_short!("xlm"), to_token: symbol_short!("usdc"), amount_in: xlm_in, amount_out: usdc_out }.publish(&env);
         usdc_out
     }
 
@@ -338,10 +324,7 @@ impl StellarDex {
         env.storage().instance().set(&DataKey::XlmReserve,  &(xlm_res  - xlm_out));
         env.storage().instance().set(&DataKey::UsdcReserve, &(usdc_res + usdc_in));
 
-        env.events().publish(
-            (symbol_short!("swap"),),
-            SwapEvent { from_token: symbol_short!("usdc"), to_token: symbol_short!("xlm"), amount_in: usdc_in, amount_out: xlm_out },
-        );
+        SwapEvent { from_token: symbol_short!("usdc"), to_token: symbol_short!("xlm"), amount_in: usdc_in, amount_out: xlm_out }.publish(&env);
         xlm_out
     }
 
@@ -365,10 +348,7 @@ impl StellarDex {
         token::Client::new(&env, &eth)
             .transfer(&env.current_contract_address(), &buyer, &eth_out);
 
-        env.events().publish(
-            (symbol_short!("swap"),),
-            SwapEvent { from_token: symbol_short!("xlm"), to_token: symbol_short!("eth"), amount_in: xlm_in, amount_out: eth_out },
-        );
+        SwapEvent { from_token: symbol_short!("xlm"), to_token: symbol_short!("eth"), amount_in: xlm_in, amount_out: eth_out }.publish(&env);
         eth_out
     }
 
@@ -392,10 +372,7 @@ impl StellarDex {
         env.storage().instance().set(&DataKey::XlmReserve, &(xlm_res - xlm_out));
         env.storage().instance().set(&DataKey::EthReserve, &(eth_res  + eth_in));
 
-        env.events().publish(
-            (symbol_short!("swap"),),
-            SwapEvent { from_token: symbol_short!("eth"), to_token: symbol_short!("xlm"), amount_in: eth_in, amount_out: xlm_out },
-        );
+        SwapEvent { from_token: symbol_short!("eth"), to_token: symbol_short!("xlm"), amount_in: eth_in, amount_out: xlm_out }.publish(&env);
         xlm_out
     }
 
@@ -425,10 +402,7 @@ impl StellarDex {
         token::Client::new(&env, &eth)
             .transfer(&env.current_contract_address(), &swapper, &eth_out);
 
-        env.events().publish(
-            (symbol_short!("swap"),),
-            SwapEvent { from_token: symbol_short!("usdc"), to_token: symbol_short!("eth"), amount_in: usdc_in, amount_out: eth_out },
-        );
+        SwapEvent { from_token: symbol_short!("usdc"), to_token: symbol_short!("eth"), amount_in: usdc_in, amount_out: eth_out }.publish(&env);
         eth_out
     }
 
@@ -458,10 +432,7 @@ impl StellarDex {
         token::Client::new(&env, &usdc)
             .transfer(&env.current_contract_address(), &swapper, &usdc_out);
 
-        env.events().publish(
-            (symbol_short!("swap"),),
-            SwapEvent { from_token: symbol_short!("eth"), to_token: symbol_short!("usdc"), amount_in: eth_in, amount_out: usdc_out },
-        );
+        SwapEvent { from_token: symbol_short!("eth"), to_token: symbol_short!("usdc"), amount_in: eth_in, amount_out: usdc_out }.publish(&env);
         usdc_out
     }
 

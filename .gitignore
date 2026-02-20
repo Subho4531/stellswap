@@ -39,3 +39,17 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# rust / soroban build artifacts
+/target/
+Cargo.lock
+Cargo.toml
+
+# contracts & deploy scripts
+/contracts/
+/scripts/
+*.log
+deploy_err.txt
+build_err*.txt
+test_output.txt
+

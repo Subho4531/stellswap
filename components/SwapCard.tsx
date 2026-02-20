@@ -6,13 +6,9 @@ import { useStellarWallet } from "@/context/StellarWalletProvider";
 import { TokenSelectorModal } from "./TokenSelectorModal";
 import { TOKENS } from "@/config/tokens";
 import { toast } from "sonner";
-import { Horizon, rpc, TransactionBuilder, Networks, BASE_FEE, Asset, Contract, nativeToScVal, Transaction } from "@stellar/stellar-sdk";
-
-const rpcServer = new rpc.Server("https://soroban-testnet.stellar.org");
-const horizonServer = new Horizon.Server("https://horizon-testnet.stellar.org");
 
 export function SwapCard() {
-    const { address, kit, signTransaction } = useStellarWallet();
+    const { address } = useStellarWallet();
     const [payAmount, setPayAmount] = useState("");
     const [receiveAmount, setReceiveAmount] = useState("");
     const [payToken, setPayToken] = useState(TOKENS[0]);
@@ -25,13 +21,11 @@ export function SwapCard() {
 
     const [isPending, setIsPending] = useState(false);
 
-    // Mock checking balance - in a real Soroban app we'd call the token contract's balance() function
-    const [mockBalance, setMockBalance] = useState<number>(100);
+    const [mockBalance, setMockBalance] = useState<number>(10000);
     const [mockReceiveBalance, setMockReceiveBalance] = useState<number>(0);
 
     const tokenPrices: Record<string, number> = {
-        XLM: 0.12, USDC: 1.0, EURC: 1.08, BTC: 65000,
-        ETH: 3500, SOL: 150, LINK: 18, UNI: 8, AQUA: 0.001, CTRLZ: 0.5,
+        XLM: 0.12, USDC: 1.0, USDT: 1.0, SOL: 150, EURC: 1.08, ETH: 3500,
     };
 
     const getExchangeRate = () => {
@@ -40,7 +34,6 @@ export function SwapCard() {
         return p1 / p2;
     };
 
-    // Auto update receive amount when pay amount or tokens change
     useEffect(() => {
         if (!payAmount || parseFloat(payAmount) === 0) {
             setReceiveAmount("");
@@ -52,75 +45,16 @@ export function SwapCard() {
     }, [payAmount, payToken, receiveToken]);
 
     useEffect(() => {
-        // Basic effect to fetch balance if needed
-        if (address && payToken.symbol === "XLM") {
-            horizonServer.loadAccount(address).then((acc) => {
-                const native = acc.balances.find((b) => b.asset_type === "native");
-                if (native) setMockBalance(parseFloat(native.balance));
-            }).catch(() => {
-                setMockBalance(0);
-            });
-        } else {
-            setMockBalance(5000); // Mock balance for other tokens
-        }
-    }, [address, payToken]);
-
-    useEffect(() => {
-        if (address && receiveToken.symbol === "XLM") {
-            horizonServer.loadAccount(address).then((acc) => {
-                const native = acc.balances.find((b) => b.asset_type === "native");
-                if (native) setMockReceiveBalance(parseFloat(native.balance));
-            }).catch(() => {
-                setMockReceiveBalance(0);
-            });
-        } else {
-            setMockReceiveBalance(0); // Assuming 0 balance initially for alt tokens
-        }
-    }, [address, receiveToken]);
-
-    useEffect(() => {
-        // Whenever amount changes, try to simulate
         if (!payAmount || parseFloat(payAmount) <= 0) {
             setSimulatedFeeStroops(null);
             return;
         }
 
-        // Simulate transaction delay then calculate fee (dry run logic)
         const simulateGas = async () => {
             setLoadingFee(true);
-            try {
-                if (!address) {
-                    // generic fallback fee
-                    setSimulatedFeeStroops("150000"); // 150,000 stroops
-                    return;
-                }
-
-                // Normally, we'd build a real Soroban contract call here and run `rpcServer.simulateTransaction(tx)`
-                // For demonstration to meet the multdimensional fee structure UI req:
-                // Let's create a dummy standard transaction just to show simulation concepts
-                const acc = await horizonServer.loadAccount(address).catch(() => null);
-                if (acc) {
-                    const ammContract = new Contract("CCV6HSAGOB4RQTY6CZSRTQJIX6VSMKTXXO5ICLXZ3XKRPP2PGXBA4WGB");
-                    const tx = new TransactionBuilder(acc, { fee: BASE_FEE, networkPassphrase: Networks.TESTNET })
-                        .addOperation(
-                            ammContract.call("swap") // Mocked raw call for UI simulation integration
-                        )
-                        .setTimeout(30)
-                        .build();
-                    // const sim = await rpcServer.simulateTransaction(tx);
-                    // simulatedFeeStroops = sim.minResourceFee + inclusionFee
-
-                    // Simulating Soroban RPC output
-                    await new Promise(r => setTimeout(r, 600));
-                    setSimulatedFeeStroops("457000"); // simulated Soroban Resource + Inclusion fee
-                } else {
-                    setSimulatedFeeStroops("457000");
-                }
-            } catch (e) {
-                setSimulatedFeeStroops("500000");
-            } finally {
-                setLoadingFee(false);
-            }
+            await new Promise(r => setTimeout(r, 600));
+            setSimulatedFeeStroops("457000");
+            setLoadingFee(false);
         };
 
         const timer = setTimeout(() => simulateGas(), 500);
@@ -140,84 +74,24 @@ export function SwapCard() {
 
         setIsPending(true);
         try {
-            // 1. Build Transaction
-            const source = await horizonServer.loadAccount(address);
-            const ammContract = new Contract("CCV6HSAGOB4RQTY6CZSRTQJIX6VSMKTXXO5ICLXZ3XKRPP2PGXBA4WGB");
-
-            // Assume 7 decimals for stroops
-            const amountInStroops = BigInt(Math.floor(payAmtNum * 10000000));
-            // In a real DEX, is_buy_a would be derived from the selected token direction
-            const isBuyA = true;
-
-            const tx = new TransactionBuilder(source, {
-                fee: BASE_FEE,
-                networkPassphrase: Networks.TESTNET,
-            })
-                .addOperation(
-                    ammContract.call(
-                        "swap",
-                        nativeToScVal(address, { type: "address" }),
-                        nativeToScVal(isBuyA, { type: "bool" }),
-                        nativeToScVal(amountInStroops, { type: "i128" }),
-                        nativeToScVal(0, { type: "i128" }) // min_out = 0 for demo
-                    )
-                )
-                .setTimeout(60)
-                .build();
-
-            // 2. Simulate Transaction to generate auth footprint and resource fee
             toast.loading("Simulating transaction...", { id: "swap" });
-            const simRes = await rpcServer.simulateTransaction(tx);
-            if (rpc.Api.isSimulationError(simRes)) {
-                console.error("Simulation failed:", simRes.error);
-                throw new Error("Simulation failed. Check pool liquidity or allowance.");
-            }
+            await new Promise(r => setTimeout(r, 1200));
 
-            // 3. Assemble Transaction
-            const assembledTx = rpc.assembleTransaction(tx, simRes).build();
-
-            // 4. Sign Transaction via Freighter
             toast.loading("Please sign the transaction...", { id: "swap" });
-            const signedXdr = await signTransaction(assembledTx.toXDR());
-            if (!signedXdr) {
-                toast.dismiss("swap");
-                setIsPending(false);
-                return;
-            }
+            await new Promise(r => setTimeout(r, 1500));
 
-            // 5. Submit to Network & Poll
             toast.loading("Submitting to network...", { id: "swap" });
-            const txToSubmit = TransactionBuilder.fromXDR(signedXdr, Networks.TESTNET) as Transaction;
-            const sendRes = await rpcServer.sendTransaction(txToSubmit);
-            if (sendRes.status === "ERROR") {
-                throw new Error("Transaction submission failed.");
-            }
-
-            // Wait for network confirmation
-            let txStatus: string = sendRes.status;
-            let checkTxRes: rpc.Api.GetTransactionResponse;
-            while (txStatus === "PENDING" || txStatus === "NOT_FOUND") {
-                await new Promise(r => setTimeout(r, 2000));
-                checkTxRes = await rpcServer.getTransaction(sendRes.hash);
-                txStatus = checkTxRes.status;
-            }
-
-            if (txStatus === "FAILED") {
-                throw new Error("Transaction failed on the network. Make sure you have enough XLM.");
-            }
+            await new Promise(r => setTimeout(r, 2000));
 
             toast.dismiss("swap");
             toast.success(
                 <div className="flex flex-col gap-1">
                     <span>Swap Executed Successfully!</span>
-                    <a href={`https://stellar.expert/explorer/testnet/tx/${sendRes.hash}`} target="_blank" rel="noreferrer" className="text-primary underline text-xs">
-                        View on Explorer
-                    </a>
+                    <span className="text-primary text-xs">Demo Mode — No real transaction</span>
                 </div>,
                 { id: "swap_success", duration: 5000 }
             );
 
-            // Auto-refresh balances mock
             const receiveAmtNum = parseFloat(receiveAmount);
             setPayAmount("");
             setReceiveAmount("");
@@ -225,7 +99,6 @@ export function SwapCard() {
             setMockReceiveBalance(mockReceiveBalance + receiveAmtNum);
 
         } catch (e: any) {
-            console.error(e);
             toast.dismiss("swap");
             toast.error(e.message || "An error occurred during swap execution");
         } finally {

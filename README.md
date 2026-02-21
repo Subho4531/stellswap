@@ -2,7 +2,7 @@
 
 StellSwap is a multi-wallet decentralized exchange (DEX) frontend built on the **Stellar Soroban Testnet**. It allows users to swap between XLM, USDC, and ETH using a real automated market maker (AMM) smart contract.
 
-<img src="./screenshots/stellswap.png" alt="StellSwap" />
+<img src="./screenshots/home1.png.png" alt="StellSwap" />
 
 ## 🚀 Features & Project Requirements Met
 
@@ -32,6 +32,13 @@ StellSwap is a multi-wallet decentralized exchange (DEX) frontend built on the *
 [View on Stellar Expert Explorer](https://stellar.expert/explorer/testnet/tx/042cab10f52f02a74e361482362ab8ea003f5ce624c965e6b4e073040bc1d0a5)
 
 ---
+## 📸 Screenshots
+
+<img src="./screenshots/home1.png" alt="StellSwap" />
+<img src="./screenshots/wallets.png" alt="StellSwap" />
+<img src="./screenshots/tokenmenu.png" alt="StellSwap" />
+<img src="./screenshots/sucessfultxn.png" alt="StellSwap" />
+<img src="./screenshots/valid.png" alt="StellSwap" />
 
 ## 🛠️ Setup Instructions
 
@@ -68,9 +75,6 @@ To run this project locally, you will need **Node.js 18+** and the **Freighter W
 
 ---
 
-## 📸 Screenshots
-
-<img src="./screenshots/stellswap.png" alt="StellSwap" />
 
 ---
 Built for Stellar Soroban Smart Contract Development Level 2.

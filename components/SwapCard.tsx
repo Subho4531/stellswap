@@ -175,7 +175,7 @@ export function SwapCard() {
 
         setIsPending(true);
         try {
-            toast.loading("Simulating transaction...", { id: "swap" });
+            toast.loading("Transaction is being processed...", { id: "swap" });
 
             const server = new Horizon.Server("https://horizon-testnet.stellar.org");
             const account = await server.loadAccount(address);
@@ -252,7 +252,7 @@ export function SwapCard() {
                             rel="noopener noreferrer"
                             className="text-blue-400 hover:text-blue-300 text-xs underline cursor-pointer"
                         >
-                            View on Stellar Expert ↗
+                            {sendResponse.hash}
                         </a>
                     </div>,
                     { duration: 7000 }

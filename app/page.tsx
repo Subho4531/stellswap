@@ -4,6 +4,7 @@ import { TopNav } from "@/components/TopNav";
 import { SwapCard } from "@/components/SwapCard";
 import { PriceChart } from "@/components/PriceChart";
 import { useStellarWallet } from "@/context/StellarWalletProvider";
+import { LiquidityPool } from "@/components/LiquidityPool";
 
 export default function Home() {
   const { address } = useStellarWallet();
@@ -24,9 +25,12 @@ export default function Home() {
 
       <TopNav />
       <main className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 relative z-10 min-h-[80vh]">
-        <div className="w-full max-w-lg flex flex-col gap-6 mb-16">
+        <div className="w-full justify-center items-top flex gap-6 p-6 mb-16">
+          
+          <LiquidityPool/>
           <SwapCard />
           <PriceChart />
+          
         </div>
       </main>
     </div>

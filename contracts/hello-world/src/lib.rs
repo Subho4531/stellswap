@@ -13,6 +13,7 @@ use soroban_sdk::{
 #[derive(Clone)]
 pub enum DataKey {
     Admin,
+    XlmToken,
     UsdcToken,
     EthToken,
     XlmReserve,
@@ -91,6 +92,7 @@ impl StellarDex {
     pub fn initialize(
         env: Env,
         admin: Address,
+        xlm_token: Address,
         usdc_token: Address,
         eth_token: Address,
         xlm_per_usdc: i128,
@@ -102,6 +104,7 @@ impl StellarDex {
         admin.require_auth();
 
         env.storage().instance().set(&DataKey::Admin,     &admin);
+        env.storage().instance().set(&DataKey::XlmToken,  &xlm_token);
         env.storage().instance().set(&DataKey::UsdcToken, &usdc_token);
         env.storage().instance().set(&DataKey::EthToken,  &eth_token);
         env.storage().instance().set(&DataKey::XlmReserve,  &0_i128);
@@ -137,6 +140,18 @@ impl StellarDex {
         Self::require_admin(&env);
         new_admin.require_auth();
         env.storage().instance().set(&DataKey::Admin, &new_admin);
+    }
+
+    /// Set the XLM SAC token address (admin only, for post-deploy setup)
+    pub fn set_xlm_token(env: Env, xlm_token: Address) {
+        Self::require_admin(&env);
+        env.storage().instance().set(&DataKey::XlmToken, &xlm_token);
+    }
+
+    /// Upgrade contract WASM in-place (admin only)
+    pub fn upgrade(env: Env, new_wasm_hash: soroban_sdk::BytesN<32>) {
+        Self::require_admin(&env);
+        env.deployer().update_current_contract_wasm(new_wasm_hash);
     }
 
     // ═══════════════════════════════════════
@@ -186,6 +201,11 @@ impl StellarDex {
             panic_with_error!(&env, DexError::ZeroAmount);
         }
 
+        if xlm_amount > 0 {
+            let xlm: Address = env.storage().instance().get(&DataKey::XlmToken).unwrap();
+            token::Client::new(&env, &xlm)
+                .transfer(&provider, &env.current_contract_address(), &xlm_amount);
+        }
         if usdc_amount > 0 {
             let usdc: Address = env.storage().instance().get(&DataKey::UsdcToken).unwrap();
             token::Client::new(&env, &usdc)
@@ -255,6 +275,11 @@ impl StellarDex {
         env.storage().persistent()
             .set(&DataKey::LpBalance(provider.clone()), &(bal - lp_amount));
 
+        if xlm_out > 0 {
+            let xlm: Address = env.storage().instance().get(&DataKey::XlmToken).unwrap();
+            token::Client::new(&env, &xlm)
+                .transfer(&env.current_contract_address(), &provider, &xlm_out);
+        }
         if usdc_out > 0 {
             let usdc: Address = env.storage().instance().get(&DataKey::UsdcToken).unwrap();
             token::Client::new(&env, &usdc)
@@ -292,6 +317,11 @@ impl StellarDex {
         let usdc_res: i128 = env.storage().instance().get(&DataKey::UsdcReserve).unwrap();
         if usdc_res < usdc_out { panic_with_error!(&env, DexError::InsufficientFunds); }
 
+        // Transfer XLM from buyer to contract
+        let xlm: Address = env.storage().instance().get(&DataKey::XlmToken).unwrap();
+        token::Client::new(&env, &xlm)
+            .transfer(&buyer, &env.current_contract_address(), &xlm_in);
+
         let xlm_res: i128 = env.storage().instance().get(&DataKey::XlmReserve).unwrap();
         env.storage().instance().set(&DataKey::XlmReserve,  &(xlm_res  + xlm_in));
         env.storage().instance().set(&DataKey::UsdcReserve, &(usdc_res - usdc_out));
@@ -320,6 +350,11 @@ impl StellarDex {
         token::Client::new(&env, &usdc)
             .transfer(&seller, &env.current_contract_address(), &usdc_in);
 
+        // Transfer XLM from contract to seller
+        let xlm: Address = env.storage().instance().get(&DataKey::XlmToken).unwrap();
+        token::Client::new(&env, &xlm)
+            .transfer(&env.current_contract_address(), &seller, &xlm_out);
+
         let usdc_res: i128 = env.storage().instance().get(&DataKey::UsdcReserve).unwrap();
         env.storage().instance().set(&DataKey::XlmReserve,  &(xlm_res  - xlm_out));
         env.storage().instance().set(&DataKey::UsdcReserve, &(usdc_res + usdc_in));
@@ -339,6 +374,11 @@ impl StellarDex {
         if eth_out < min_eth_out { panic_with_error!(&env, DexError::SlippageExceeded); }
         let eth_res: i128 = env.storage().instance().get(&DataKey::EthReserve).unwrap();
         if eth_res < eth_out { panic_with_error!(&env, DexError::InsufficientFunds); }
+
+        // Transfer XLM from buyer to contract
+        let xlm: Address = env.storage().instance().get(&DataKey::XlmToken).unwrap();
+        token::Client::new(&env, &xlm)
+            .transfer(&buyer, &env.current_contract_address(), &xlm_in);
 
         let xlm_res: i128 = env.storage().instance().get(&DataKey::XlmReserve).unwrap();
         env.storage().instance().set(&DataKey::XlmReserve, &(xlm_res + xlm_in));
@@ -367,6 +407,11 @@ impl StellarDex {
         let eth: Address = env.storage().instance().get(&DataKey::EthToken).unwrap();
         token::Client::new(&env, &eth)
             .transfer(&seller, &env.current_contract_address(), &eth_in);
+
+        // Transfer XLM from contract to seller
+        let xlm: Address = env.storage().instance().get(&DataKey::XlmToken).unwrap();
+        token::Client::new(&env, &xlm)
+            .transfer(&env.current_contract_address(), &seller, &xlm_out);
 
         let eth_res: i128 = env.storage().instance().get(&DataKey::EthReserve).unwrap();
         env.storage().instance().set(&DataKey::XlmReserve, &(xlm_res - xlm_out));

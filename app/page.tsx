@@ -1,8 +1,5 @@
-import Image from "next/image";
-
 import { TopNav } from "@/components/TopNav";
 import { SwapCard } from "@/components/SwapCard";
-import { Orderbook } from "@/components/Orderbook";
 
 export default function Home() {
   return (
@@ -12,14 +9,9 @@ export default function Home() {
       <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-blue-500/10 rounded-full blur-[100px] pointer-events-none" />
 
       <TopNav />
-      <main className="flex-1 flex flex-col items-center p-4 sm:p-8 relative z-10">
-        <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mt-8">
-          <div className="lg:col-span-6 xl:col-span-5 flex justify-center">
-            <SwapCard />
-          </div>
-          <div className="lg:col-span-6 xl:col-span-7 w-full">
-            <Orderbook />
-          </div>
+      <main className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 relative z-10 min-h-[80vh]">
+        <div className="w-full max-w-lg mb-16">
+          <SwapCard />
         </div>
       </main>
     </div>

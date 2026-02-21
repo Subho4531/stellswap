@@ -11,10 +11,16 @@
 
 @layer base {
   :root {
-    --background: #09090b; /* zinc-950 */
-    --foreground: #fafafa;
-    --primary: #06b6d4; /* electric cyan */
+    --background: #000000;
+    /* Pure Black */
+    --foreground: #ffffff;
+    /* White */
+    --primary: #ffffff;
+    /* White buttons */
     --primary-foreground: #000000;
+    /* Black text on white */
+    --accent: #27272a;
+    /* zinc-800 */
   }
 }
 

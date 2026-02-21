@@ -30,6 +30,7 @@ export const StellarWalletProvider = ({ children }: { children: ReactNode }) => 
             selectedWalletId: FREIGHTER_ID,
             modules: allowAllModules(),
         });
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setKit(kitInstance);
     }, []);
 
@@ -43,6 +44,7 @@ export const StellarWalletProvider = ({ children }: { children: ReactNode }) => 
                         const { address } = await kit.getAddress();
                         setAddress(address);
                         toast.success("Wallet connected!");
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     } catch (e: any) {
                         console.error(e);
                         if (e.message?.includes("not detected") || e.message?.includes("extension")) {
@@ -53,6 +55,7 @@ export const StellarWalletProvider = ({ children }: { children: ReactNode }) => 
                     }
                 },
             });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
             console.error(error);
         }
@@ -73,6 +76,7 @@ export const StellarWalletProvider = ({ children }: { children: ReactNode }) => 
                 networkPassphrase: WalletNetwork.TESTNET,
             });
             return result.signedTxXdr;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.error("Sign Error:", e);
             if (e?.message?.toLowerCase().includes("reject") || e?.message?.includes("User declined")) {

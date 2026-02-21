@@ -3,13 +3,12 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, X } from "lucide-react";
-import { TOKENS } from "@/config/tokens";
-import Image from "next/image";
+import { TOKENS, Token } from "@/config/tokens";
 
 interface TokenSelectorModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSelect: (token: any) => void;
+    onSelect: (token: Token) => void;
     selectedTokenSymbol?: string;
 }
 
@@ -38,7 +37,7 @@ export function TokenSelectorModal({ isOpen, onClose, onSelect, selectedTokenSym
                         animate={{ scale: 1, opacity: 1, y: 0 }}
                         exit={{ scale: 0.95, opacity: 0, y: 10 }}
                         transition={{ type: "spring", duration: 0.4 }}
-                        className="relative w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl shadow-primary/10 overflow-hidden flex flex-col"
+                        className="relative w-full max-w-md bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl shadow-black/50 overflow-hidden flex flex-col"
                     >
                         <div className="p-4 border-b border-zinc-800 flex justify-between items-center">
                             <h2 className="text-lg font-semibold text-white">Select a token</h2>
@@ -58,7 +57,7 @@ export function TokenSelectorModal({ isOpen, onClose, onSelect, selectedTokenSym
                                     placeholder="Search name or symbol"
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
-                                    className="w-full bg-zinc-950 border border-zinc-800 text-white placeholder-zinc-500 rounded-xl py-2.5 pl-10 pr-4 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition"
+                                    className="w-full bg-zinc-900/50 border border-zinc-800 text-white placeholder-zinc-500 rounded-xl py-2.5 pl-10 pr-4 focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 transition"
                                 />
                             </div>
                         </div>
@@ -78,8 +77,8 @@ export function TokenSelectorModal({ isOpen, onClose, onSelect, selectedTokenSym
                                             setSearch("");
                                         }}
                                         className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${selectedTokenSymbol === token.symbol
-                                                ? "bg-primary/10 border border-primary/20 pointer-events-none opacity-50"
-                                                : "hover:bg-zinc-800/50 border border-transparent"
+                                            ? "bg-white/10 border border-white/20 pointer-events-none opacity-50"
+                                            : "hover:bg-zinc-800/50 border border-transparent"
                                             }`}
                                     >
                                         <div className="flex items-center gap-3">

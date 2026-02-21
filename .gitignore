@@ -53,3 +53,4 @@ deploy_err.txt
 build_err*.txt
 test_output.txt
 
+soroban-examples-tmp

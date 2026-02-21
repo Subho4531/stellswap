@@ -19,6 +19,59 @@ StellSwap is a multi-wallet decentralized exchange (DEX) frontend built on the *
 
 ---
 
+## 🏛️ Smart Contract Architecture: The 3-Asset Index Pool
+
+Unlike traditional `x * y = k` Automated Market Makers (AMMs) that require separate isolated pairs (e.g., an XLM/USDC pool and a separate XLM/ETH pool), StellSwap implements a **3-Asset Index Pool**. All three assets (XLM, USDC, ETH) reside within a single liquidity pool. 
+
+### Why this design? (Advantages)
+1. **Capital Efficiency for LPs:** Liquidity Providers do not fragment their capital across multiple pair contracts. By calling `add_liquidity`, they provide to the entire ecosystem at once and earn fees on *all* trades across the protocol.
+2. **Built-in Routing (Zero-Hop Cross-Pair Swaps):** To swap USDC for ETH, you don't need a router contract to bridge two pools. The `swap_usdc_for_eth` function internally prices USDC to XLM, then XLM to ETH, providing a direct swap in a single transaction. This costs less gas and prevents multi-hop slippage.
+3. **Admin-Controlled Oracle Pricing:** The prices of USDC and ETH are pegged to XLM via the `update_rates` function, protecting the pool from the extreme price manipulation attacks often seen in pure constant-product pools with low TVL.
+
+### Architecture Flow
+
+```mermaid
+graph TD
+    User([Trader/User])
+    Admin([Contract Admin])
+    LP([Liquidity Provider])
+
+    subgraph StellSwap 3-Asset Index Pool
+        XLM[(XLM Reserve)]
+        USDC[(USDC Reserve)]
+        ETH[(ETH Reserve)]
+        
+        Prices[Oracle Rates<br>UsdcRate, EthRate]
+        
+        S1(swap_xlm_for_usdc)
+        S2(swap_xlm_for_eth)
+        S3(swap_usdc_for_eth)
+        
+        L1(add_liquidity)
+        L2(remove_liquidity)
+        
+        Admin1(update_rates)
+        Admin2(set_paused)
+    end
+    
+    User -->|Sends XLM| S1
+    S1 -->|Uses| Prices
+    S1 -->|Calculates payout| USDC
+    USDC -->|Sends USDC| User
+    
+    User -.->|Sends USDC| S3
+    S3 -.->|Uses| Prices
+    S3 -.->|Sends ETH| User
+    
+    LP ==>|Deposits XLM, USDC, ETH| L1
+    L1 ==> XLM & USDC & ETH
+    
+    Admin --->|Sets Prices| Prices
+    Admin --->|Emergency Pause| Admin2
+```
+
+---
+
 ## 🔗 Important Links & Contract Information
 
 - **Contract Address:** `CCH3WGMUTBXK573BPC6MSWLQQZ72DYYOQ7ZFEOXJBJROFCTVFCETDQZA` (Stellar Testnet)

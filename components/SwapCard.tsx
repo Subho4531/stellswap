@@ -212,9 +212,11 @@ export function SwapCard() {
 
             toast.loading("Please sign the transaction in your wallet...", { id: "swap" });
 
-            const signedXdr = await signTransaction(xdr);
+            const signedXdr = await signTransaction(xdr).catch(() => null);
             if (!signedXdr) {
                 toast.dismiss("swap");
+                toast.warning("Transaction was canceled", { duration: 3000 });
+                setIsPending(false);
                 return;
             }
 
@@ -244,7 +246,14 @@ export function SwapCard() {
                 toast.success(
                     <div className="flex flex-col gap-1">
                         <span>Swap Executed Successfully!</span>
-                        <span className="text-zinc-500 text-xs">Testnet tx hash: {sendResponse.hash}</span>
+                        <a
+                            href={`https://stellar.expert/explorer/testnet/tx/${sendResponse.hash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-400 hover:text-blue-300 text-xs underline cursor-pointer"
+                        >
+                            View on Stellar Expert ↗
+                        </a>
                     </div>,
                     { duration: 7000 }
                 );

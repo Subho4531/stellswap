@@ -14,7 +14,7 @@ export function TopNav() {
         <nav className="w-full flex items-center justify-between py-6 px-8 absolute top-0 z-50 bg-transparent">
             {/* Brand & Logo */}
             <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
                     <Activity className="text-primary w-5 h-5" />
                 </div>
                 <span className="text-xl font-bold tracking-tight text-white">StellSwap</span>
@@ -23,7 +23,7 @@ export function TopNav() {
             {/* Testnet Badge & Connect Wallet */}
             <div className="flex items-center gap-4">
                 <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900 border border-zinc-800 focus:outline-none text-xs font-semibold text-zinc-300">
-                    <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
                     Testnet
                 </div>
 

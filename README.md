@@ -6,11 +6,11 @@ StellSwap is a multi-wallet decentralized exchange (DEX) frontend built on the *
 
 ## 🚀 Features & Project Requirements Met
 
-### **Multi-Wallet Support:** Users can connect using the Freighter Wallet extension via `@creit.tech/stellar-wallets-kit`.
-### **Contract Deployed on Testnet:** The Soroban AMM contract is deployed live on the Stellar Testnet.
-### **Contract Called from Frontend:** The UI directly interacts with the Soroban contract for quotes (`get_rates`) and actual swaps (`swap_xlm_for_usdc`, etc.).
-### **Transaction Status Visible:** Real-time toast notifications guide the user through signing, submission, and confirmation (with polling for `SUCCESS`).
-### **Live Market Data:** Displays live XLM/USD pricing data using a dynamic Chart.js chart and `get_reserves` data from the contract for pool liquidity TVL.
+#### **Multi-Wallet Support:** Users can connect using the Freighter Wallet extension via `@creit.tech/stellar-wallets-kit`.
+#### **Contract Deployed on Testnet:** The Soroban AMM contract is deployed live on the Stellar Testnet.
+#### **Contract Called from Frontend:** The UI directly interacts with the Soroban contract for quotes (`get_rates`) and actual swaps (`swap_xlm_for_usdc`, etc.).
+#### **Transaction Status Visible:** Real-time toast notifications guide the user through signing, submission, and confirmation (with polling for `SUCCESS`).
+#### **Live Market Data:** Displays live XLM/USD pricing data using a dynamic Chart.js chart and `get_reserves` data from the contract for pool liquidity TVL.
 
 ### 🛡️ 3 Error Types Handled
 1. **Wallet Not Connected:** Swap buttons and inputs are disabled; the UI prompts the user to "Connect Wallet" before attempting any transaction.

@@ -302,7 +302,7 @@ impl StellarDex {
         (xlm_out, usdc_out, eth_out)
     }
 
-    // ═══════════════════════════════════════
+    // ═════════════════════════════════════
     //  SWAPS
     // ═══════════════════════════════════════
     pub fn swap_xlm_for_usdc(env: Env, buyer: Address, xlm_in: i128, min_usdc_out: i128) -> i128 {

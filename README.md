@@ -23,10 +23,26 @@ StellSwap is a multi-wallet decentralized exchange (DEX) frontend built on the *
 
 Unlike traditional `x * y = k` Automated Market Makers (AMMs) that require separate isolated pairs (e.g., an XLM/USDC pool and a separate XLM/ETH pool), StellSwap implements a **3-Asset Index Pool**. All three assets (XLM, USDC, ETH) reside within a single liquidity pool. 
 
-### Why this design? (Advantages)
-1. **Capital Efficiency for LPs:** Liquidity Providers do not fragment their capital across multiple pair contracts. By calling `add_liquidity`, they provide to the entire ecosystem at once and earn fees on *all* trades across the protocol.
-2. **Built-in Routing (Zero-Hop Cross-Pair Swaps):** To swap USDC for ETH, you don't need a router contract to bridge two pools. The `swap_usdc_for_eth` function internally prices USDC to XLM, then XLM to ETH, providing a direct swap in a single transaction. This costs less gas and prevents multi-hop slippage.
-3. **Admin-Controlled Oracle Pricing:** The prices of USDC and ETH are pegged to XLM via the `update_rates` function, protecting the pool from the extreme price manipulation attacks often seen in pure constant-product pools with low TVL.
+### ⚡ Why this design? (Advantages & Gas Savings)
+
+1.  **Capital Efficiency for LPs:** 
+    Liquidity Providers do not fragment their capital across multiple pair contracts. By calling `add_liquidity`, they provide to the entire ecosystem at once and earn fees on *all* trades across the protocol.
+    
+2.  **Double Gas Savings (Zero-Hop Cross-Pair Swaps):** 
+    To swap USDC for ETH, you don't need a factory router contract to bridge two separate token pools. The `swap_usdc_for_eth` function internally prices USDC to XLM, then XLM to ETH, providing a direct swap in a single transaction. 
+    > In a traditional AMM, moving from USDC to ETH requires 2 hops (USDC -> XLM, then XLM -> ETH), requiring two separate contract invocations which doubles the transaction fee. StellSwap calculates this natively in a single internal update, **saving double the gas** and mitigating multi-hop slippage!
+    
+3.  **Admin-Controlled Oracle Pricing:** 
+    The prices of USDC and ETH are initially pegged to XLM via the `update_rates` function, protecting the pool from the extreme price manipulation attacks often seen in pure constant-product AMMs with low initial TVL.
+
+### 🔧 Featured Contract Functions
+
+The contract exposes clean, efficient endpoints, perfectly formatted for the frontend implementation:
+
+-   `swap_xlm_for_usdc` / `swap_xlm_for_eth`: Core swaps directly against the native reserve token.
+-   `swap_usdc_for_eth` / `swap_eth_for_usdc`: The unified cross-pair routing methods that save double gas.
+-   `add_liquidity` / `remove_liquidity`: Generalized access points for Market Makers to add or remove liquidity from the global multi-asset index pool.
+-   `quote_xlm_to_usdc` / `quote_usdc_to_xlm`: Instant, on-chain mathematical quote functions that provide the frontend with exact expected yield calculations.
 
 ### Architecture Flow
 
@@ -87,11 +103,13 @@ graph TD
 ---
 ## 📸 Screenshots
 
-<img src="./screenshots/home1.png" alt="StellSwap" />
-<img src="./screenshots/wallets.png" alt="StellSwap" />
-<img src="./screenshots/tokenmenu.png" alt="StellSwap" />
-<img src="./screenshots/sucessfultxn.png" alt="StellSwap" />
-<img src="./screenshots/valid.png" alt="StellSwap" />
+<img src="./screenshots/home1.png" alt="StellSwap Home" />
+<img src="./screenshots/contract.png" alt="StellSwap Smart Contract" />
+<img src="./screenshots/tests.png" alt="StellSwap Contract Tests" />
+<img src="./screenshots/wallets.png" alt="StellSwap Wallets" />
+<img src="./screenshots/tokenmenu.png" alt="StellSwap Tokens" />
+<img src="./screenshots/sucessfultxn.png" alt="StellSwap Success" />
+<img src="./screenshots/valid.png" alt="StellSwap Validation" />
 
 ## 🛠️ Setup Instructions
 

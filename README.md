@@ -1,51 +1,41 @@
-# StellSwap 🌌
+# StellSwap 🌌 — 3-Asset Index Pool DEX
 
-StellSwap is a multi-wallet decentralized exchange (DEX) frontend built on the **Stellar Soroban Testnet**. It allows users to swap between XLM, USDC, and ETH using a real automated market maker (AMM) smart contract.
+> A decentralized exchange (DEX) frontend built on Stellar's Soroban smart contracts, featuring a capital-efficient 3-asset Index Pool, zero-hop cross-pair routing, and live market data.
 
-<img src="./screenshots/home1.png" alt="StellSwap" />
+## 🎯 Stellar Journey to Mastery 
 
-## 🚀 Features & Project Requirements Met
+**Production-hardened DeFi application with a multi-asset AMM pool, efficient zero-hop gas routing, and live Freighter wallet integration.**
 
-#### **Multi-Wallet Support:** Users can connect using the Freighter Wallet extension via `@creit.tech/stellar-wallets-kit`.
-#### **Contract Deployed on Testnet:** The Soroban AMM contract is deployed live on the Stellar Testnet.
-#### **Contract Called from Frontend:** The UI directly interacts with the Soroban contract for quotes (`get_rates`) and actual swaps (`swap_xlm_for_usdc`, etc.).
-#### **Transaction Status Visible:** Real-time toast notifications guide the user through signing, submission, and confirmation (with polling for `SUCCESS`).
-#### **Live Market Data:** Displays live XLM/USD pricing data using a dynamic Chart.js chart and `get_reserves` data from the contract for pool liquidity TVL.
+## 🏛️ Architecture Overview
 
-### 🛡️ 3 Error Types Handled
-1. **Wallet Not Connected:** Swap buttons and inputs are disabled; the UI prompts the user to "Connect Wallet" before attempting any transaction.
-2. **Insufficient Balance:** The UI instantly checks user balances from the Soroban token contracts and disables the swap button with an "Insufficient Balance" warning if the entered amount exceeds their holdings.
-3. **Transaction Canceled / Rejected:** If the user rejects the transaction signature in the Freighter wallet popup, the frontend catches the error and displays a clear "Transaction was canceled" warning toast instead of crashing.
-
----
-
-## 🏛️ Smart Contract Architecture: The 3-Asset Index Pool
-
-Unlike traditional `x * y = k` Automated Market Makers (AMMs) that require separate isolated pairs (e.g., an XLM/USDC pool and a separate XLM/ETH pool), StellSwap implements a **3-Asset Index Pool**. All three assets (XLM, USDC, ETH) reside within a single liquidity pool. 
-
-### ⚡ Why this design? (Advantages & Gas Savings)
-
-1.  **Capital Efficiency for LPs:** 
-    Liquidity Providers do not fragment their capital across multiple pair contracts. By calling `add_liquidity`, they provide to the entire ecosystem at once and earn fees on *all* trades across the protocol.
-    
-2.  **Double Gas Savings (Zero-Hop Cross-Pair Swaps):** 
-    To swap USDC for ETH, you don't need a factory router contract to bridge two separate token pools. The `swap_usdc_for_eth` function internally prices USDC to XLM, then XLM to ETH, providing a direct swap in a single transaction. 
-    > In a traditional AMM, moving from USDC to ETH requires 2 hops (USDC -> XLM, then XLM -> ETH), requiring two separate contract invocations which doubles the transaction fee. StellSwap calculates this natively in a single internal update, **saving double the gas** and mitigating multi-hop slippage!
-    
-3.  **Admin-Controlled Oracle Pricing:** 
-    The prices of USDC and ETH are initially pegged to XLM via the `update_rates` function, protecting the pool from the extreme price manipulation attacks often seen in pure constant-product AMMs with low initial TVL.
-
-### 🔧 Featured Contract Functions
-
-The contract exposes clean, efficient endpoints, perfectly formatted for the frontend implementation:
-
--   `swap_xlm_for_usdc` / `swap_xlm_for_eth`: Core swaps directly against the native reserve token.
--   `swap_usdc_for_eth` / `swap_eth_for_usdc`: The unified cross-pair routing methods that save double gas.
--   `add_liquidity` / `remove_liquidity`: Generalized access points for Market Makers to add or remove liquidity from the global multi-asset index pool.
--   `quote_xlm_to_usdc` / `quote_usdc_to_xlm`: Instant, on-chain mathematical quote functions that provide the frontend with exact expected yield calculations.
-
-### Architecture Flow
-
+```text
+┌──────────────────────────────────────────────────────────────┐
+│                       FRONTEND (Next.js + React)             │
+│  ┌──────────┐ ┌──────────────┐ ┌───────────┐ ┌───────────┐  │
+│  │ Wallet   │ │ Swap         │ │ Live Chart│ │ Token     │  │
+│  │ Selector │ │ Interface    │ │ Component │ │ Modal     │  │
+│  └────┬─────┘ └──────┬───────┘ └─────┬─────┘ └─────┬─────┘  │
+│       │              │               │              │        │
+│       └──────────────┴───────────────┴──────────────┘        │
+│                              │                               │
+│              ┌───────────────┴────────────────┐              │
+│              │    Stellar SDK (sorobanRpc)    │              │
+│              └───────────────┬────────────────┘              │
+└──────────────────────────────┼───────────────────────────────┘
+                               │ ← Soroban RPC
+┌──────────────────────────────┼───────────────────────────────┐
+│                    SMART CONTRACTS (Soroban)                 │
+│  ┌─────────────────────┐     ┌──────────────────────┐        │
+│  │ 3-Asset Index Pool  │────►│  External Tokens     │        │
+│  │ • swap_xlm_for_usdc │     │  • XLM SAC Token     │        │
+│  │ • swap_usdc_for_eth │────►│  • USDC Testnet      │        │
+│  │ • add_liquidity     │     │  • ETH Testnet       │        │
+│  │ • quote_usdc_to_xlm │     │                      │        │
+│  └─────────────────────┘     └──────────────────────┘        │
+│                                                              │
+│  Zero-Hop Routing: USDC -> ETH internally priced via XLM     │
+└──────────────────────────────────────────────────────────────┘
+```
 ```mermaid
 graph TD
     User([Trader/User])
@@ -80,72 +70,206 @@ graph TD
     S3 -.->|Sends ETH| User
     
     LP ==>|Deposits XLM, USDC, ETH| L1
-    L1 ==> XLM & USDC & ETH
-    
-    Admin --->|Sets Prices| Prices
-    Admin --->|Emergency Pause| Admin2
+---
+
+## ✅ Submission
+
+### Required Documentation
+
+#### Live Demo Link
+🎥 **Demo Video:** [Watch on Google Drive](https://drive.google.com/file/d/1YrkdCCgmgnBjsK8VrzKl3NzRC7cnJlDN/view?usp=sharing)
+
+#### Contract Addresses & Transaction Hash
+
+**StellSwap AMM Contract ID:**
+```
+CCH3WGMUTBXK573BPC6MSWLQQZ72DYYOQ7ZFEOXJBJROFCTVFCETDQZA
+```
+[🔍 Verify on Stellar Expert Explorer](https://stellar.expert/explorer/testnet/contract/CCH3WGMUTBXK573BPC6MSWLQQZ72DYYOQ7ZFEOXJBJROFCTVFCETDQZA)
+
+**Token Contracts:**
+- **XLM SAC Token:** `CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC`
+- **USDC Token:** `CBAFDW2AC2PSW3MGW5FVZUJSASEHMT7U6HX24XKHQ34GXXFKCGUX2I7Y`
+- **ETH Token:** `CANGUK3UOKPZOKHTYUYOXJYJRQ5B7YH7ZSKXW6KNCIPOKXXUDNT3RT2V`
+
+**Example Transaction Hash (Successful Swap Call):**
+```
+042cab10f52f02a74e361482362ab8ea003f5ce624c965e6b4e073040bc1d0a5
+```
+*(Swapped 10 XLM for 1.66 USDC)*
+[🔍 View Transaction on Stellar Expert Explorer](https://stellar.expert/explorer/testnet/tx/042cab10f52f02a74e361482362ab8ea003f5ce624c965e6b4e073040bc1d0a5)
+
+---
+
+## 📸 Required Screenshots
+
+### Application Interface
+![StellSwap Home](./screenshots/home1.png)
+*Sleek, dark-mode terminal swap UI with live charts*
+
+### Supported Wallets
+![Wallet Options](./screenshots/wallets.png)
+*Freighter Wallet extension support via stellar-wallets-kit*
+
+### Token Menu
+![Token Options](./screenshots/tokenmenu.png)
+*Token selection modal*
+
+### Smart Contract Verification
+![Smart Contract](./screenshots/contract.png)
+*AMM Smart Contract functions verified*
+
+### Contract Tests Passing
+![Contract Tests](./screenshots/tests.png)
+*31/31 Rust Smart Contract tests passing including slippage, access control, and balance bounds.*
+
+### Transaction Success Flow
+![Platform Success](./screenshots/sucessfultxn.png)
+
+### Live Validation Check
+![Slippage Validation](./screenshots/valid.png)
+
+---
+
+## ✨ Features
+
+### Core Features
+- **Live Market Data** — Displays live XLM/USD pricing data using a dynamic Chart.js chart and `get_reserves` data from the contract.
+- **Contract Called from Frontend** — The UI directly interacts with the Soroban contract for quotes (`get_rates`) and actual swaps.
+- **Transaction Status Visible** — Real-time toast notifications guide the user through signing, submission, and confirmation.
+- **Error Handling** — Deep error handling for rejected signatures, insufficient balances, and disconnected wallets.
+
+### Smart Contract Architecture Upgrades 🆕
+- **🏛️ 3-Asset Index Pool** — All three assets (XLM, USDC, ETH) reside within a single liquidity pool, maximizing capital efficiency for LPs.
+- **⚡ Double Gas Savings (Zero-Hop Routing)** — To swap USDC for ETH, you don't need a factory router contract to bridge two separate token pools. The `swap_usdc_for_eth` function internally prices USDC to XLM, then XLM to ETH natively in a single update, **saving double the gas** and mitigating multi-hop slippage!
+- **🛡️ Oracle Safety** — Admin-controlled oracle rates (`UsdcRate`, `EthRate`) peg cross-asset valuations to XLM to prevent extreme price manipulation attacks often seen in standard `x*y=k` AMMs with low TVL.
+- **⛽ Internal State Ledger** — To prevent donation attacks and flash-loan exploits, the pool tracks true liquidity strictly through its persistent `DataKey::Reserve` states rather than easily-manipulated raw token balances.
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js v18+
+- npm
+- Freighter Wallet browser extension
+- Testnet XLM ([Get free XLM](https://laboratory.stellar.org/#account-creator?network=test))
+
+### 1. Clone & Install
+
+```bash
+git clone <your-repo-url>
+cd stellswap
+
+# Install frontend UI dependencies
+npm install
+```
+
+### 2. Configure Environment
+
+Create a `.env` file in the root directory:
+
+```env
+NEXT_PUBLIC_CONTRACT_ADDRESS=CCH3WGMUTBXK573BPC6MSWLQQZ72DYYOQ7ZFEOXJBJROFCTVFCETDQZA
+NEXT_PUBLIC_ADMIN_PUBKEY=GBV2VSXKD6CY3XNZOVKIWAEXBHYU3XDQWOGOZSFI27SDCA6SGST73ZBQ
+NEXT_PUBLIC_USDC_TOKEN_ID=CBAFDW2AC2PSW3MGW5FVZUJSASEHMT7U6HX24XKHQ34GXXFKCGUX2I7Y
+NEXT_PUBLIC_ETH_TOKEN_ID=CANGUK3UOKPZOKHTYUYOXJYJRQ5B7YH7ZSKXW6KNCIPOKXXUDNT3RT2V
+```
+
+### 3. Start Development
+
+```bash
+npm run dev
+```
+
+- Open [http://localhost:3000](http://localhost:3000) in your browser. Connect Freighter wallet (set to **Testnet**) to begin viewing balances, executing swaps, and watching quotes update.
+
+---
+
+## 🔗 Smart Contracts
+
+### 3-Asset AMM Contract
+
+Located in `contracts/hello-world/src/lib.rs`
+
+| Function | Description |
+|---|---|
+| `swap_xlm_for_usdc` / `swap_xlm_for_eth` | Core swaps directly against the native reserve token |
+| `swap_usdc_for_eth` / `swap_eth_for_usdc` | The unified cross-pair routing methods that save double gas |
+| `add_liquidity` / `remove_liquidity` | Access points for adding/removing liquidity to the index pool |
+| `quote_xlm_to_usdc` / `quote_usdc_to_xlm` | Instant on-chain expected yield mathematical quotes |
+| `update_rates` | Admin-only pricing oracle adjustments |
+
+**Zero-Hop Routing Flow (e.g., USDC for ETH):**
+```
+User calls swap_usdc_for_eth() on Stellswap Contract
+  → Calculates intermediate XLM value (USDC * usdc_rate)
+  → Calculates final ETH value (intermediate_xlm / eth_rate)
+  → Contract transfers USDC from User to Pool
+  → Contract transfers ETH from Pool to User
+  → Updates Internal State Ledgers seamlessly
+  → Emits SWAP event
+```
+
+### Build & Deploy Contracts
+
+```bash
+cd contracts/hello-world
+cargo build --target wasm32-unknown-unknown --release
+
+# Deploy (Stellar CLI required)
+stellar contract deploy \
+  --wasm target/wasm32-unknown-unknown/release/hello_world.wasm \
+  --source YOUR_SECRET_KEY \
+  --network testnet
 ```
 
 ---
 
-## 🔗 Important Links & Contract Information
+## 🧪 Testing
 
-- **Contract Address:** `CCH3WGMUTBXK573BPC6MSWLQQZ72DYYOQ7ZFEOXJBJROFCTVFCETDQZA` (Stellar Testnet)
-- **XLM SAC Token:** `CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC`
-- **USDC Token:** `CBAFDW2AC2PSW3MGW5FVZUJSASEHMT7U6HX24XKHQ34GXXFKCGUX2I7Y` 
-- **ETH Token:** `CANGUK3UOKPZOKHTYUYOXJYJRQ5B7YH7ZSKXW6KNCIPOKXXUDNT3RT2V`
+### Smart Contract Tests (31 Passing ✅)
+```bash
+cd contracts/hello-world && cargo test
+```
 
-**Testnet Transaction Hash (Successful Swap Call):**
-`042cab10f52f02a74e361482362ab8ea003f5ce624c965e6b4e073040bc1d0a5`
-*(Swapped 10 XLM for 1.66 USDC)*
-[View on Stellar Expert Explorer](https://stellar.expert/explorer/testnet/tx/042cab10f52f02a74e361482362ab8ea003f5ce624c965e6b4e073040bc1d0a5)
-
----
-## 📸 Screenshots
-
-<img src="./screenshots/home1.png" alt="StellSwap Home" />
-<img src="./screenshots/contract.png" alt="StellSwap Smart Contract" />
-<img src="./screenshots/tests.png" alt="StellSwap Contract Tests" />
-<img src="./screenshots/wallets.png" alt="StellSwap Wallets" />
-<img src="./screenshots/tokenmenu.png" alt="StellSwap Tokens" />
-<img src="./screenshots/sucessfultxn.png" alt="StellSwap Success" />
-<img src="./screenshots/valid.png" alt="StellSwap Validation" />
-
-## 🛠️ Setup Instructions
-
-To run this project locally, you will need **Node.js 18+** and the **Freighter Wallet extension** installed in your browser.
-
-1. **Clone the repository:**
-   ```bash
-   git clone <your-repo-url>
-   cd stellswap
-   ```
-
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-   *(Note: This installs Next.js, Stellar SDK, chart.js, and other required packages).*
-
-3. **Configure Environment Variables:**
-   A `.env` file should be present in the root directory with the following configuration:
-   ```env
-   NEXT_PUBLIC_CONTRACT_ADDRESS=CCH3WGMUTBXK573BPC6MSWLQQZ72DYYOQ7ZFEOXJBJROFCTVFCETDQZA
-   NEXT_PUBLIC_ADMIN_PUBKEY=GBV2VSXKD6CY3XNZOVKIWAEXBHYU3XDQWOGOZSFI27SDCA6SGST73ZBQ
-   NEXT_PUBLIC_USDC_TOKEN_ID=CBAFDW2AC2PSW3MGW5FVZUJSASEHMT7U6HX24XKHQ34GXXFKCGUX2I7Y
-   NEXT_PUBLIC_ETH_TOKEN_ID=CANGUK3UOKPZOKHTYUYOXJYJRQ5B7YH7ZSKXW6KNCIPOKXXUDNT3RT2V
-   ```
-
-4. **Start the development server:**
-   ```bash
-   npm run dev
-   ```
-
-5. **Open the App:**
-   Open [http://localhost:3000](http://localhost:3000) in your browser. Connect your Freighter wallet (ensure it is set to **Testnet**) to begin viewing balances, live market charts, and executing swaps.
+- Cross-pair zero-hop swaps accuracy (`test_swap_usdc_for_eth_cross_pair`)
+- Slippage protection & minimum output checks (`test_slippage_usdc_for_xlm_panics`)
+- Empty reserve panic protections (`test_swap_fails_on_empty_usdc_reserve`)
+- Liquidity share math and proportion tests (`test_two_providers_lp_balances`)
+- Pause controls and Admin Auth limitations
 
 ---
 
+## 🔐 Security Features
+
+### Smart Contract Level
+- ✅ Internal state ledgers to prevent "donation" token-balance manipulation
+- ✅ Admin-only oracle pricing to prevent algorithmic flash loan attacks
+- ✅ Minimum output slippage guarantees on every swap function
+- ✅ Strict zero-amount and disconnected auth validations
+- ✅ Pause-state emergency breakers
+
+### Frontend Level
+- ✅ Simulated fee calculations via Soroban RPC
+- ✅ Disconnected state handling & button protections
+- ✅ Transaction rejection error catching via `unsignedXdr`
 
 ---
-Built for Stellar Soroban Smart Contract Development Level 2.
+
+## 📄 License
+
+MIT License — feel free to use this project as a learning resource!
+
+---
+
+## 🙏 Acknowledgments
+
+Built for **Stellar Soroban Smart Contract Development Level 2.**
+
+Special thanks to the Stellar Development Foundation for providing excellent documentation and tools.
+
+---
+
+**Submission Date:** February 2026
+**Status:** Ready 

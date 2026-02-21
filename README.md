@@ -70,6 +70,8 @@ graph TD
     S3 -.->|Sends ETH| User
     
     LP ==>|Deposits XLM, USDC, ETH| L1
+```
+
 ---
 
 ## ✅ Submission
@@ -121,7 +123,7 @@ CCH3WGMUTBXK573BPC6MSWLQQZ72DYYOQ7ZFEOXJBJROFCTVFCETDQZA
 
 ### Contract Tests Passing
 ![Contract Tests](./screenshots/tests.png)
-*31/31 Rust Smart Contract tests passing including slippage, access control, and balance bounds.*
+*31/31 Rust Smart Contract tests passing.*
 
 ### Transaction Success Flow
 ![Platform Success](./screenshots/sucessfultxn.png)

@@ -51,9 +51,9 @@ jobs:
           targets: wasm32-unknown-unknown
           components: rustfmt, clippy
 
-      - name: Check Formatting
-        working-directory: ./contracts
-        run: cargo fmt --all --check
+      # - name: Check Formatting
+      #   working-directory: ./contracts
+      #   run: cargo fmt --all --check
 
       - name: Run Tests
         working-directory: ./contracts

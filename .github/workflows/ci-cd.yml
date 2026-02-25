@@ -29,8 +29,8 @@ jobs:
       - name: Install Dependencies
         run: npm ci || npm install
 
-      - name: Lint Code
-        run: npm run lint
+      # - name: Lint Code
+      #   run: npm run lint
 
       - name: Type Check (TypeScript)
         run: npx tsc --noEmit

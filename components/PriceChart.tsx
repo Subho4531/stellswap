@@ -147,7 +147,7 @@ export function PriceChart() {
     };
 
     return (
-        <div className="bg-zinc-950/80 backdrop-blur-3xl border border-zinc-800/50 rounded-3xl p-4 sm:p-6 w-full max-w-[480px] shadow-2xl">
+        <div className="bg-zinc-950/80 backdrop-blur-3xl border border-zinc-800/50 rounded-3xl p-4 sm:p-6 w-full max-w-[480px] xl:max-w-[400px] shadow-2xl">
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">

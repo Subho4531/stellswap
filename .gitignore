@@ -54,3 +54,5 @@ build_err*.txt
 test_output.txt
 
 soroban-examples-tmp
+.vercel
+.env*.local

@@ -1,10 +1,18 @@
-# StellSwap 🌌 — 3-Asset Index Pool DEX
+# StellSwap 🌌 — Smart, Efficient & Truly Decentralized
 
-> A decentralized exchange (DEX) frontend built on Stellar's Soroban smart contracts, featuring a capital-efficient 3-asset Index Pool, zero-hop cross-pair routing, and live market data.
+>A next-generation decentralized exchange (DEX) built on Stellar’s Soroban smart contracts, designed for capital efficiency, seamless trading, and a smooth user experience.
+
+**The project is engineered for performance and clarity, featuring:**
+
+- 🌊 Capital-Efficient Index Pools
+- 🔄 Zero-Hop Cross-Pair Routing
+- 👛 Multi-Wallet Support
+- 📊 Live Market Data & Real-Time Charts
+- ⚡ Fast, Low-Cost Transactions powered by Stellar
 
 ## 🎯 Stellar Journey to Mastery 
 
-**Production-hardened DeFi application with a multi-asset AMM pool, efficient zero-hop gas routing, and live Freighter wallet integration.**
+**Production-hardened DeFi application with a multi-asset AMM pool, efficient zero-hop gas routing, and live Multiple wallets integration.**
 
 ## 🏛️ Architecture Overview
 
@@ -83,7 +91,7 @@ graph TD
 
 #### Contract Addresses & Transaction Hash
 
-**StellSwap AMM Contract ID:**
+**StellSwap AMM Liquidity Pool Contract ID:**
 ```
 CCH3WGMUTBXK573BPC6MSWLQQZ72DYYOQ7ZFEOXJBJROFCTVFCETDQZA
 ```
@@ -130,6 +138,23 @@ CCH3WGMUTBXK573BPC6MSWLQQZ72DYYOQ7ZFEOXJBJROFCTVFCETDQZA
 
 ### Live Validation Check
 ![Slippage Validation](./screenshots/valid.png)
+
+### CI/CD Pipeline Integration with Github Actions
+![CI/CD Using Github Actions](./screenshots/cicd.png)
+![Frontend](./screenshots/frontend_cicd.png)
+![Contracts](./screenshots/contracts_cicd.png)
+
+### 📱 Mobile Responsive UI
+
+<p align="center">
+  <img src="./screenshots/mswap.jpeg" width="200"/>
+  <img src="./screenshots/mpool.jpeg" width="200"/>
+  <img src="./screenshots/mchart.jpeg" width="200"/>
+  <img src="./screenshots/mwallets.jpeg" width="200"/>
+</p>
+
+
+
 
 ---
 
@@ -267,7 +292,7 @@ MIT License — feel free to use this project as a learning resource!
 
 ## 🙏 Acknowledgments
 
-Built for **Stellar Soroban Smart Contract Development Level 2.**
+Built for **Stellar Soroban Smart Contract Development Level 4.**
 
 Special thanks to the Stellar Development Foundation for providing excellent documentation and tools.
 
